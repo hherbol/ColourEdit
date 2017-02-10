@@ -444,51 +444,69 @@ def blur(image):
     return blurred_image
 
 
-def blur_alg(image):
+def blur_alg(image, blur_range=2):
+    '''
+   This function lets the user blur their image to a specified degree.
 
-    # You need a graphic file in the working directory, specify it here:
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+        blur_range: *int*
+            The amount of neighbours the function averages over when blurring
+
+    **Returns**
+
+        image: *image*
+            The PIL.Image image handle with the blurred colours
+
+    **References**
+
+        * http://gist.github.com/davechristian/917729
+    '''
+
+    '''
+    The blur algorithm
+    ------------------
+    The algorithm works like this:
+    For every pixel in the image, add the red, green and blue values of it's
+    neighbouring pixels and divide each total red, green and blue value by
+    the total number of colours scanned. This then gives you the average pixel
+    colour for the pixel in the image being scanned. 
+
+    The 20 x 3 dots below represented pixels, and the X represents the
+    pixel currently being checked.
+    ..........
+    .....x....
+    ..........
+
+    If the kernel size has been set to one then the pixel colour checks
+    would be done
+    like this ('o' represents a colour check):
+    ....ooo...
+    ....oxo...
+    ....ooo...
+    '''
+    # Dimensions of the image
     width, height = image.size
 
-    # The higher the kernel value, the more intense the blur
-    blur_amount = 6
-    blur_range = blur_amount / 2
-
-    # The blur algorithm
-    # ------------------
-    # The algorithm works like this:
-    # For every pixel in 'img', add the red, green and blue values of it's
-    # neighbouring pixels and divide each total red, green and blue value by
-    # the total number of colours scanned. This then gives you the average pixel
-    # colour for the pixel in 'img' being scanned. The neighbouring pixels positions
-    # are calculated using a kernel value.
-
-    # The 20 x 3 dots below represented pixels, and the X represents the
-    # pixel currently being checked.
-    # ...................
-    # .............x.....
-    # ...................
-
-    # If the kernel size has been set to three then the pixel colour checks
-    # would be done
-    # like this ('c' represents a colour check):
-    # ............ccc....
-    # ............cxc....
-    # ............ccc....
-
-    for x in range(0, int(height)):
-        for y in range(0, int(width)):
+    for x in range(height):
+        for y in range(width):
             r, g, b, colour, count = 0, 0, 0, (0, 0, 0), 0
 
             for blur_x in range(0 - blur_range, 0 + blur_range):
                 for blur_y in range(0 - blur_range, 0 + blur_range):
-                    # Don't check outside screen edges...
+                    # Don't check outside screen edges
                     if (x + blur_x > 0 and x + blur_x < height and y + blur_y > 0 and y + blur_y < width):
                         colour = image.getpixel((y + blur_y, x + blur_x,))
+                        
+                        # Sum of each colour within blur_range
                         r += colour[0]
                         g += colour[1]
                         b += colour[2]
                         count += 1
 
+            # Average of each colour             
             if (r > 0):
                 r = r / count
             if (g > 0):
@@ -496,6 +514,7 @@ def blur_alg(image):
             if (b > 0):
                 b = b / count
 
+            # Blur the image
             blur = (r, g, b)
             image.putpixel((y, x), blur)
 

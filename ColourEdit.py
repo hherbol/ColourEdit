@@ -365,6 +365,50 @@ def edit_colour(image, operator="ADD", color="Red", scale=1.0, keep_luminance=Tr
     return image
 
 
+def is_similar_color(c1, c2, delta):
+    '''
+    A function to deduce if two colors are similar.  This is a naive approach
+    and any updates would be welcome, but essentially I take the difference
+    in RGB values and ensure all differences are less than delta.
+    '''
+    diff = [abs(a - b) < delta for a, b in zip(c1, c2)]
+    return all(diff)
+
+
+def color_blind(image, color1, color2, delta=10):
+    '''
+    This function will emulate being color1-color2 color blind. This works by
+    finding all instances of color1 and color2 in image, and changing it to a
+    sum of the two colors.  A delta is given so that a range of colors is
+    acceptable.
+
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+        color1: *str*
+            A color to confuse with color2
+        color2: *str*
+            A color to confuse with color1
+
+    **Returns**
+
+        image: *image*
+            The PIL.Image image handle with the edited colours
+    '''
+
+    cblind = tuple([a + b for a, b in zip(color1, color2)])
+
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            color = image.getpixel((x, y))
+            if (is_similar_color(color, color1, delta) or
+                    is_similar_color(color, color2, delta)):
+                image.putpixel((x, y), cblind)
+
+    return image
+
 # Get color of specified pixel
 def get_pixel(image, x, y):
     pix = image.load()
@@ -458,17 +502,18 @@ def blur_alg(image):
     return image
 
 
-############################
-# Start actual Python Script
-############################
-img = Image.open('spring.jpg')
-img.show()
-print get_image_luminance(img)
+if __name__ == "__main__":
+    ############################
+    # Start actual Python Script
+    ############################
+    img = Image.open('spring.jpg')
+    img.show()
+    print get_image_luminance(img)
 
-img = edit_colour(img, color="Purple", scale=1)
-img.show()
-print get_image_luminance(img)
+    img = edit_colour(img, color="Purple", scale=1)
+    img.show()
+    print get_image_luminance(img)
 
-img = rgb2gray(img)
-print get_image_luminance(img)
-img.show()
+    img = rgb2gray(img)
+    print get_image_luminance(img)
+    img.show()

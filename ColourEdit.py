@@ -366,17 +366,7 @@ def edit_colour(image, operator="ADD", color="Red", scale=1.0, keep_luminance=Tr
     return image
 
 
-def is_similar_color(c1, c2, delta):
-    '''
-    A function to deduce if two colors are similar.  This is a naive approach
-    and any updates would be welcome, but essentially I take the difference
-    in RGB values and ensure all differences are less than delta.
-    '''
-    diff = [abs(a - b) < delta for a, b in zip(c1, c2)]
-    return all(diff)
-
-
-def color_blind(image, color1, color2, delta=10):
+def rg_color_blind(image, color1, color2, delta=10):
     '''
     This function will emulate being color1-color2 color blind. This works by
     finding all instances of color1 and color2 in image, and changing it to a
@@ -401,17 +391,18 @@ def color_blind(image, color1, color2, delta=10):
     color1 = COLORS[color1]
     color2 = COLORS[color2]
 
-    cblind = tuple([a + b for a, b in zip(color1, color2)])
+    # cblind = tuple([a + b for a, b in zip(color1, color2)])
 
     width, height = image.size
     for x in range(width):
         for y in range(height):
             color = image.getpixel((x, y))
-            if (is_similar_color(color, color1, delta) or
-                    is_similar_color(color, color2, delta)):
-                image.putpixel((x, y), cblind)
+            avg = int((color[0] + color[1]) / 2)
+            color = tuple([avg, avg, color[2]])
+            image.putpixel((x, y), color)
 
     return image
+
 
 # Get color of specified pixel
 def get_pixel(image, x, y):
@@ -476,7 +467,7 @@ def blur_alg(image, blur_range=2):
     For every pixel in the image, add the red, green and blue values of it's
     neighbouring pixels and divide each total red, green and blue value by
     the total number of colours scanned. This then gives you the average pixel
-    colour for the pixel in the image being scanned. 
+    colour for the pixel in the image being scanned.
 
     The 20 x 3 dots below represented pixels, and the X represents the
     pixel currently being checked.
@@ -503,14 +494,14 @@ def blur_alg(image, blur_range=2):
                     # Don't check outside screen edges
                     if (x + blur_x > 0 and x + blur_x < height and y + blur_y > 0 and y + blur_y < width):
                         colour = image.getpixel((y + blur_y, x + blur_x,))
-                        
+
                         # Sum of each colour within blur_range
                         r += colour[0]
                         g += colour[1]
                         b += colour[2]
                         count += 1
 
-            # Average of each colour             
+            # Average of each colour
             if (r > 0):
                 r = r / count
             if (g > 0):

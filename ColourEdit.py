@@ -167,6 +167,25 @@ def diff_color(image):
 
 
 def get_pixel_luminance(rgb):
+    '''
+    Returns the luminance of a single pixel.
+
+    Pixel Luminance = 0.299 * R + 0.587 * G + 0.114 * B
+
+    **Parameters**
+
+        rgb: *list, int*
+            An RGB pixel.
+
+    **Returns**
+
+        luminance: *float*
+            The luminance of the specific pixel.
+
+    **References**
+
+        * http://stackoverflow.com/a/596243
+    '''
     return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
 
 
@@ -178,65 +197,167 @@ def get_image_luminance(image):
 
     Pixel Luminance = 0.299 * R + 0.587 * G + 0.114 * B
 
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+
+    **Returns**
+
+        luminance: *float*
+            The luminance of the entire image.
+
     **References**
 
         * http://stackoverflow.com/a/596243
     '''
-    width, height = img.size
+    width, height = image.size
+    reds, greens, blues = 0, 0, 0
+    for x in range(width):
+        for y in range(height):
+            c = image.getpixel((x, y))
+            reds += c[0]
+            greens += c[1]
+            blues += c[2]
 
-    reds = sum([c[0]
-                for x in range(width)
-                for y in range(height)
-                for c in img.getpixel((x, y))
-                ]
-               )
-    greens = sum([c[0]
-                  for x in range(width)
-                  for y in range(height)
-                  for c in img.getpixel((x, y))
-                  ]
-                 )
-    blues = sum([c[0]
-                 for x in range(width)
-                 for y in range(height)
-                 for c in img.getpixel((x, y))
-                 ]
-                )
     total_luminance = 0.299 * reds + 0.587 * greens + 0.114 * blues
 
     return total_luminance / (width * height)
 
 
-# Remove color
-def remove_color(image, operator, color="RED", scale=0.2, keep_brightness=True):
+def scale_image_pixels(image, scale):
+    '''
+    A function to scale the pixels of an image by some float. Note, as pixels
+    are RGB and only integers, it will floor the scaled values.
 
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+        scale: *list, float* or *float*
+            A value, or list of values if you want to do so element wise,
+            to scale the pixels by.
+
+    **Returns**
+
+        image: *image*
+            The PIL.Image image handle with scaled pixels
+    '''
+
+    if type(scale) == float:
+        scale = [scale, scale, scale]
+
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            current_colour = image.getpixel((x, y))
+            new_colour = tuple([int(c * s) for c, s in zip(current_colour, scale)])
+            new_colour = tuple([max(c, 0) for c in new_colour])
+            new_colour = tuple([min(c, 255) for c in new_colour])
+            image.putpixel((x, y), new_colour)
+    return image
+
+
+def offset_image_pixels(image, offset):
+    '''
+    A function to offset the pixels of an image by some float. Note, as pixels
+    are RGB and only integers, it will floor the offset values.
+
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+        offset: *list, int* or *int*
+            An offset. If given as a list it is done elementwise. Else, the
+            same offset impacts each pixel value equally.
+
+    **Returns**
+
+        image: *image*
+            The PIL.Image image handle with offset pixels
+    '''
+
+    if type(offset) == int:
+        offset = [offset, offset, offset]
+
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            current_colour = image.getpixel((x, y))
+            new_colour = tuple([int(c + o) for c, o in zip(current_colour, offset)])
+            new_colour = tuple([max(c, 0) for c in new_colour])
+            new_colour = tuple([min(c, 255) for c in new_colour])
+            image.putpixel((x, y), new_colour)
+    return image
+
+
+def set_image_luminance(image, luminance):
+    '''
+    This function will scale the image brightness.  It will find the
+    difference in total image luminance, and scale the current image
+    appropriately.
+
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+        luminance: *float*
+            The luminance you want the image to have.
+
+    **Returns**
+
+        image: *image*
+            The PIL.Image image handle with the new luminance
+    '''
+    current_luminance = get_image_luminance(image)
+
+    # Recall, get_image_luminance is by pixel, so we just subtract and
+    # scale by pixel
+    scale = luminance / current_luminance
+
+    return scale_image_pixels(image, scale)
+
+
+def edit_colour(image, operator="ADD", color="Red", scale=0.2, keep_brightness=True):
+    '''
+    This function gives the user full control over the colours of the image.
+    You can add or subtract different colors across the entire image.  Further,
+    you can maintain the brightness of the scaled system.
+
+    **Parameters**
+
+        image: *image*
+            The PIL.Image image handle
+        operator: *str, optional*
+            Either an ADD or SUBTRACT operator.
+        color: *str, optional*
+            The colour
+
+    **Returns**
+
+        image: *image*
+            The PIL.Image image handle with the edited colours
+    '''
     if color not in COLORS:
         raise Exception("You chose a bad color >:(")
     if operator not in ["ADD", "SUBTRACT"]:
         raise Exception("Opterator must be ADD or SUBTRACT")
 
-    width, height = img.size
+    # This is the total luminance of the image
+    luminance = get_image_luminance(image)
 
-    edit_colour = [int(c * scale) for c in COLORS[color]]
+    # This is the color we want to edit image by
+    sign = 1.0
+    if operator == "SUBTRACT":
+        sign = -1.0
+    edit_colour = [int(c * scale) * sign for c in COLORS[color]]
 
-    # Process every pixel
-    for x in range(width):
-        for y in range(height):
-            current_color = img.getpixel((x, y))
-            luminance = 0.299 * current_color[0] +\
-                0.587 * current_color[1] +\
-                0.114 * current_color[2]
+    image = offset_image_pixels(image, edit_colour)
 
-            new_colour = [a - b for a, b in zip(current_color, edit_colour)]
-            new_color = tuple([max(val, 0.1) for val in new_colour])
-            luminance2 = 0.299 * new_color[0] +\
-                 0.587 * new_color[1] +\
-                 0.114 * new_color[2]
-            if keep_brightness:
-                new_color = tuple([int(c * luminance / luminance2) for c in new_color])
+    if keep_brightness:
+        # We want to maintain brightness, so let's do so
+        image = set_image_luminance(image, luminance)
 
-            new_color = tuple([int(c) for c in new_color])
-            image.putpixel((x, y), new_color)
     return image
 
 
@@ -350,18 +471,18 @@ def blur_alg(image):
 
     return image
 
+
 ############################
 # Start actual Python Script
 ############################
 img = Image.open('spring.jpg')
-
 img.show()
+print get_image_luminance(img)
 
-img = remove_color(img, "Purple", scale=1)
-
+img = edit_colour(img, color="Purple", scale=1)
 img.show()
+print get_image_luminance(img)
 
-img = remove_color(img, "Purple", scale=1, keep_brightness=False)
-
-# Displaying
+img = edit_colour(img, color="Purple", scale=1, keep_brightness=False)
 img.show()
+print get_image_luminance(img)

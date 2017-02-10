@@ -134,6 +134,7 @@ COLORS = {"Snow": [255, 250, 250],
           "Tomato": [255, 99, 71],
           "OrangeRed": [255, 69, 0],
           "Red": [255, 0, 0],
+          "Green": [0, 255, 0],
           "HotPink": [255, 105, 180],
           "DeepPink": [255, 20, 147],
           "Pink": [255, 192, 203],
@@ -396,6 +397,9 @@ def color_blind(image, color1, color2, delta=10):
         image: *image*
             The PIL.Image image handle with the edited colours
     '''
+
+    color1 = COLORS[color1]
+    color2 = COLORS[color2]
 
     cblind = tuple([a + b for a, b in zip(color1, color2)])
 

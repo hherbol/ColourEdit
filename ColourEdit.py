@@ -318,7 +318,7 @@ def set_image_luminance(image, luminance):
     return scale_image_pixels(image, scale)
 
 
-def edit_colour(image, operator="ADD", color="Red", scale=0.2, keep_brightness=True):
+def edit_colour(image, operator="ADD", color="Red", scale=1.0, keep_luminance=True):
     '''
     This function gives the user full control over the colours of the image.
     You can add or subtract different colors across the entire image.  Further,
@@ -331,7 +331,11 @@ def edit_colour(image, operator="ADD", color="Red", scale=0.2, keep_brightness=T
         operator: *str, optional*
             Either an ADD or SUBTRACT operator.
         color: *str, optional*
-            The colour
+            The colour you want to "play" with.
+        scale: *float, optional*
+            The scale of how much of color you want to add/remove.
+        keep_luminance: *bool, optional*
+            Maintain the brightness after processing the image.
 
     **Returns**
 
@@ -354,30 +358,10 @@ def edit_colour(image, operator="ADD", color="Red", scale=0.2, keep_brightness=T
 
     image = offset_image_pixels(image, edit_colour)
 
-    if keep_brightness:
+    if keep_luminance:
         # We want to maintain brightness, so let's do so
         image = set_image_luminance(image, luminance)
 
-    return image
-
-
-# Add color
-def add_color(image, color="RED", scale=0.2):
-
-    if color not in COLORS:
-        raise Exception("You chose a bad color >:(")
-
-    width, height = img.size
-
-    edit_colour = [int(c * scale) for c in COLORS[color]]
-
-    # Process every pixel
-    for x in range(width):
-        for y in range(height):
-            current_color = img.getpixel((x, y))
-            new_colour = [a + b for a, b in zip(current_color, edit_colour)]
-            new_color = tuple([min(val, 255) for val in new_colour])
-            image.putpixel((x, y), new_color)
     return image
 
 
@@ -396,16 +380,18 @@ def resize(image, size1, size2):
 
 # Convert to grayscale (using 'grayscale' function on Wikipedia)
 def rgb2gray(image):
+    luminance = get_image_luminance(image)
     width, height = img.size
 
     # Process every pixel
     for x in range(width):
         for y in range(height):
             current_color = img.getpixel((x, y))
-            scaling_function = (0.299, 0.587, 0.114)
-            new_color = tuple([int(a * b) for a, b in zip(current_color, scaling_function)])
-            image.putpixel((x, y), new_color)
-    return image
+            avg = int(sum(current_color) / 3.0)
+            new_colour = (avg, avg, avg)
+            image.putpixel((x, y), new_colour)
+
+    return set_image_luminance(image, luminance)
 
 
 def blur(image):
@@ -483,6 +469,6 @@ img = edit_colour(img, color="Purple", scale=1)
 img.show()
 print get_image_luminance(img)
 
-img = edit_colour(img, color="Purple", scale=1, keep_brightness=False)
-img.show()
+img = rgb2gray(img)
 print get_image_luminance(img)
+img.show()

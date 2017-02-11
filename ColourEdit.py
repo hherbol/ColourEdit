@@ -391,17 +391,23 @@ def rg_color_blind(image, color1, color2, delta=10):
     color1 = COLORS[color1]
     color2 = COLORS[color2]
 
+    luminance = get_image_luminance(image)
+
+    # scale = [a + b for a, b in zip(color1, color2)]
+    # total = sum(scale)
+    # scale = [float(s / total) for s in scale]
     # cblind = tuple([a + b for a, b in zip(color1, color2)])
 
     width, height = image.size
     for x in range(width):
         for y in range(height):
             color = image.getpixel((x, y))
+            # color = tuple([c * s for c, s in zip(color, scale)])
             avg = int((color[0] + color[1]) / 2)
             color = tuple([avg, avg, color[2]])
             image.putpixel((x, y), color)
 
-    return image
+    return set_image_luminance(image, luminance)
 
 
 # Get color of specified pixel

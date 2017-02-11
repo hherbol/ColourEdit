@@ -366,7 +366,7 @@ def edit_colour(image, operator="ADD", color="Red", scale=1.0, keep_luminance=Tr
     return image
 
 
-def rg_color_blind(image, color1, color2, delta=10):
+def color_blind(image, color1="Red", color2="Green"):
     '''
     This function will emulate being color1-color2 color blind. This works by
     finding all instances of color1 and color2 in image, and changing it to a
@@ -377,10 +377,10 @@ def rg_color_blind(image, color1, color2, delta=10):
 
         image: *image*
             The PIL.Image image handle
-        color1: *str*
-            A color to confuse with color2
-        color2: *str*
-            A color to confuse with color1
+        color1: *str, optional*
+            A color to confuse with color2. Default it is Red
+        color2: *str, optional*
+            A color to confuse with color1. Default it is Green
 
     **Returns**
 
@@ -388,23 +388,21 @@ def rg_color_blind(image, color1, color2, delta=10):
             The PIL.Image image handle with the edited colours
     '''
 
+    luminance = get_image_luminance(image)
+
     color1 = COLORS[color1]
     color2 = COLORS[color2]
 
-    luminance = get_image_luminance(image)
-
-    # scale = [a + b for a, b in zip(color1, color2)]
-    # total = sum(scale)
-    # scale = [float(s / total) for s in scale]
-    # cblind = tuple([a + b for a, b in zip(color1, color2)])
+    scale = [a + b for a, b in zip(color1, color2)]
+    total = float(sum(scale))
+    scale = [float(s / total) for s in scale]
 
     width, height = image.size
     for x in range(width):
         for y in range(height):
             color = image.getpixel((x, y))
-            # color = tuple([c * s for c, s in zip(color, scale)])
-            avg = int((color[0] + color[1]) / 2)
-            color = tuple([avg, avg, color[2]])
+            c_blind = sum([c for c, s in zip(color, scale) if s != 0])
+            color = tuple([c if s == 0 else int(c_blind * s) for c, s in zip(color, scale)])
             image.putpixel((x, y), color)
 
     return set_image_luminance(image, luminance)
@@ -520,6 +518,37 @@ def blur_alg(image, blur_range=2):
             image.putpixel((y, x), blur)
 
     return image
+
+
+def horse_vision(img):
+    slices = 2
+    offset = 40
+    width, height = img.size
+    slice_size = int(width / slices)
+
+    # Left half
+    # print int(slice_size) - offset
+    # print 2 * offset
+    # print slice_size + offset
+    bbox = (0, 0, slice_size - offset, height)
+    slice_left = img.crop(bbox)
+
+    # Black box
+    slice_black = Image.new('RGB', (2 * offset, height), (0, 0, 0))
+
+    # Right half
+    bbox = (slice_size + offset, 0, width, height)
+    slice_right = img.crop(bbox)
+
+    # New width and height
+    new_im = Image.new('RGB', (width, height))
+
+    x_offset = 0
+    for im in (slice_left, slice_black, slice_right):
+        new_im.paste(im, (x_offset, 0))
+        x_offset += im.size[0]
+
+    return new_im
 
 
 if __name__ == "__main__":
